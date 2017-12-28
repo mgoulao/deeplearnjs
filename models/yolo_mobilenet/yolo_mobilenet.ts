@@ -138,7 +138,7 @@ export class YoloMobileNetDetection implements Model {
     return this.math.clip(x5, 0, 6);
   }
 
-  async interpretNetout(netout: Array4D): Promise<BoundingBox[]> {
+  async interpretNetout(netout: Array4D<'float32'>): Promise<BoundingBox[]> {
     // interpret the output by the network
     const GRID_H = netout.shape[0];
     const GRID_W = netout.shape[1];

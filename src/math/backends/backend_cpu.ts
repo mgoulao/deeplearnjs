@@ -724,7 +724,7 @@ export class MathBackendCPU implements MathBackend {
     for (let i = 0; i < values.length; ++i) {
       resultValues[i] = 1 / (1 + Math.exp(-values[i]));
     }
-    return NDArray.make(x.shape, {values: resultValues}) as T;
+    return NDArray.make(x.shape, {values: resultValues}, 'float32') as T;
   }
 
   sin<T extends NDArray>(x: T): T {

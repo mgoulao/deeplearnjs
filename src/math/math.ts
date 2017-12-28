@@ -31,7 +31,7 @@ import * as broadcast_util from './broadcast_util';
 import * as concat_util from './concat_util';
 import * as conv_util from './conv_util';
 // tslint:disable-next-line:max-line-length
-import {Array1D, Array2D, Array3D, Array4D, DataTypes, NDArray, Scalar} from './ndarray';
+import {Array1D, Array2D, Array3D, Array4D, DataTypes, NDArray, Rank, RankMap, Scalar} from './ndarray';
 import * as slice_util from './slice_util';
 import {SumTypes} from './types';
 import {Variable} from './variable';
@@ -1249,8 +1249,10 @@ export class NDArrayMath implements NDArrayStorage, NDArrayManager {
    * Computes sigmoid element-wise, y = 1 / (1 + exp(-x)).
    * @param x The input NDArray.
    */
-  sigmoid<T extends NDArray>(x: T): T {
-    return this.backendEngine.executeKernel('Sigmoid', {inputs: {x}}) as T;
+  sigmoid<R extends keyof Rank>(x: NDArray<keyof DataTypes, R>):
+      RankMap<'float32'>[R] {
+    return this.backendEngine.executeKernel('Sigmoid', {inputs: {x}}) as
+        RankMap<'float32'>[R];
   }
 
   /**
@@ -1321,8 +1323,10 @@ export class NDArrayMath implements NDArrayStorage, NDArrayManager {
    * Computes hyperbolic tangent of the input NDArray element-wise.
    * @param x The input NDArray.
    */
-  tanh<T extends NDArray>(x: T): T {
-    return this.backendEngine.executeKernel('Tanh', {inputs: {x}}) as T;
+  tanh<R extends keyof Rank>(x: NDArray<keyof DataTypes, R>):
+      RankMap<'float32'>[R] {
+    return this.backendEngine.executeKernel('Tanh', {inputs: {x}}) as
+        RankMap<'float32'>[R];
   }
 
   /**

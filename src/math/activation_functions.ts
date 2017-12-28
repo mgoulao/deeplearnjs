@@ -16,11 +16,13 @@
  */
 
 import {NDArrayMath} from './math';
-import {NDArray, Scalar} from './ndarray';
+import {DataTypes, NDArray, Rank, RankMap, Scalar} from './ndarray';
 
 /** A node's activation function and its derivative. */
 export interface ActivationFunction {
-  output<T extends NDArray>(math: NDArrayMath, input: T): T;
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      input: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R];
   der<T extends NDArray>(math: NDArrayMath, input: T, output: T): T;
   dispose(): void;
 }
@@ -28,7 +30,9 @@ export interface ActivationFunction {
 export class TanHFunc implements ActivationFunction {
   private one = Scalar.new(1);
 
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
     return math.tanh(x);
   }
 
@@ -46,8 +50,10 @@ export class TanHFunc implements ActivationFunction {
 }
 
 export class ReLUFunc implements ActivationFunction {
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
-    return math.relu(x);
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
+    return math.relu(x) as RankMap<keyof DataTypes>[R];
   }
 
   der<T extends NDArray>(math: NDArrayMath, x: T, y: T) {
@@ -64,8 +70,10 @@ export class LeakyReluFunc implements ActivationFunction {
     this.alpha = alpha;
   }
 
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
-    return math.leakyRelu(x, this.alpha);
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
+    return math.leakyRelu(x, this.alpha) as RankMap<keyof DataTypes>[R];
   }
 
   der<T extends NDArray>(math: NDArrayMath, x: T, y: T) {
@@ -76,7 +84,9 @@ export class LeakyReluFunc implements ActivationFunction {
 }
 
 export class SigmoidFunc implements ActivationFunction {
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
     return math.sigmoid(x);
   }
 
@@ -94,8 +104,10 @@ export class SigmoidFunc implements ActivationFunction {
 export class SquareFunc implements ActivationFunction {
   private two = Scalar.new(2);
 
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
-    return math.elementWiseMul(x, x);
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
+    return math.multiplyStrict(x, x) as RankMap<keyof DataTypes>[R];
   }
 
   der<T extends NDArray>(math: NDArrayMath, x: T, y: T) {
@@ -109,7 +121,9 @@ export class SquareFunc implements ActivationFunction {
 }
 
 export class EluFunc implements ActivationFunction {
-  output<T extends NDArray>(math: NDArrayMath, x: T) {
+  output<R extends keyof Rank>(
+      math: NDArrayMath,
+      x: NDArray<keyof DataTypes, R>): RankMap<keyof DataTypes>[R] {
     return math.elu(x);
   }
 

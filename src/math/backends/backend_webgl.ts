@@ -575,7 +575,8 @@ export class MathBackendWebGL implements MathBackend {
 
   sigmoid<T extends NDArray>(x: T): T {
     const program = new UnaryOpProgram(x.shape, unary_op.SIGMOID);
-    return this.compileAndRun(program, [x]) as T;
+    const output = this.makeOutputArray(program.outputShape, 'float32');
+    return this.compileAndRun(program, [x], output) as T;
   }
 
   sin<T extends NDArray>(x: T): T {
