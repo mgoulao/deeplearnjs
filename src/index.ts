@@ -15,56 +15,47 @@
  * =============================================================================
  */
 
-import * as xhr_dataset from './data/xhr-dataset';
+import {BrowserUtil} from './browser_util';
 import * as environment from './environment';
-import * as gpgpu_util from './math/backends/webgl/gpgpu_util';
-// tslint:disable-next-line:max-line-length
-import * as render_ndarray_gpu_util from './math/backends/webgl/render_ndarray_gpu_util';
-import * as webgl_util from './math/backends/webgl/webgl_util';
-import * as conv_util from './math/conv_util';
+import {Environment} from './environment';
 import * as test_util from './test_util';
 import * as util from './util';
 import {version} from './version';
 
-export {CheckpointLoader} from './data/checkpoint_loader';
-export {DataStats, InMemoryDataset} from './data/dataset';
+// Optimizers.
+export {AdadeltaOptimizer} from './optimizers/adadelta_optimizer';
+export {AdagradOptimizer} from './optimizers/adagrad_optimizer';
+export {AdamOptimizer} from './optimizers/adam_optimizer';
+export {AdamaxOptimizer} from './optimizers/adamax_optimizer';
+export {MomentumOptimizer} from './optimizers/momentum_optimizer';
+export {Optimizer} from './optimizers/optimizer';
+export {RMSPropOptimizer} from './optimizers/rmsprop_optimizer';
+export {SGDOptimizer} from './optimizers/sgd_optimizer';
+
 // tslint:disable-next-line:max-line-length
-export {InCPUMemoryShuffledInputProviderBuilder, InGPUMemoryShuffledInputProviderBuilder, InputProvider} from './data/input_provider';
-export {XhrDataset, XhrDatasetConfig, XhrModelConfig} from './data/xhr-dataset';
+export {Scalar, Tensor, Tensor1D, Tensor2D, Tensor3D, Tensor4D, TensorBuffer, variable, Variable} from './tensor';
+export {Rank} from './types';
+
+// Serialization.
+export {WeightsManifestConfig} from './weights_loader';
+export {loadWeights} from './weights_loader';
+
+export * from './ops/ops';
+export {LSTMCellFunc} from './ops/lstm';
+
+export * from './train';
+export * from './globals';
+
 export {ENV, Environment, Features} from './environment';
-export {Graph, Tensor} from './graph/graph';
-// tslint:disable-next-line:max-line-length
-export {GraphRunner, GraphRunnerEventObserver, MetricReduction} from './graph/graph_runner';
-export {AdadeltaOptimizer} from './graph/optimizers/adadelta_optimizer';
-export {AdagradOptimizer} from './graph/optimizers/adagrad_optimizer';
-export {AdamOptimizer} from './graph/optimizers/adam_optimizer';
-export {AdamaxOptimizer} from './graph/optimizers/adamax_optimizer';
-export {MomentumOptimizer} from './graph/optimizers/momentum_optimizer';
-export {RMSPropOptimizer} from './graph/optimizers/rmsprop_optimizer';
-export {CostReduction, FeedEntry, Session} from './graph/session';
-// tslint:disable-next-line:max-line-length
-export {ConstantInitializer, Initializer, NDArrayInitializer, OnesInitializer, RandomNormalInitializer, RandomTruncatedNormalInitializer, RandomUniformInitializer, VarianceScalingInitializer, ZerosInitializer} from './initializers';
-export {MathBackendCPU, NDArrayMathCPU} from './math/backends/backend_cpu';
-export {MathBackendWebGL, NDArrayMathGPU} from './math/backends/backend_webgl';
-export {MatrixOrientation} from './math/backends/types/matmul';
-export {GPGPUContext} from './math/backends/webgl/gpgpu_context';
-// tslint:disable-next-line:max-line-length
-export {LSTMCell, NDArrayMath} from './math/math';
-// tslint:disable-next-line:max-line-length
-export {Array1D, Array2D, Array3D, Array4D, NDArray, Scalar} from './math/ndarray';
-export {variable} from './math/ndarray';
-export {Optimizer} from './math/optimizers/optimizer';
-export {SGDOptimizer} from './math/optimizers/sgd_optimizer';
-export {Model} from './model';
-export {version};
+export const setBackend = Environment.setBackend;
+export const getBackend = Environment.getBackend;
+export const memory = Environment.memory;
+export {TimingInfo} from './engine';
+export {WebGLTimingInfo} from './kernels/backend_webgl';
+export {version as version_core};
+export {doc} from './doc';
+
+export const nextFrame = BrowserUtil.nextFrame;
+
 // Second level exports.
-export {
-  conv_util,
-  environment,
-  gpgpu_util,
-  render_ndarray_gpu_util,
-  test_util,
-  util,
-  webgl_util,
-  xhr_dataset
-};
+export {environment, test_util, util};

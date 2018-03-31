@@ -7,10 +7,15 @@ starter/
 models/
 coverage/
 node_modules/
+website/
 karma.conf.js
-tsconfig-doc.json
-deeplearn-*.tgz
+*.tgz
 dist/demos/
 dist/**/*.js.map
 dist/**/*_test.js
 dist/**/*_test.d.ts
+.travis.yml
+.npmignore
+CONTRIBUTING.md
+tslint.json
+yarn.lock

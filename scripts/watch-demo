@@ -21,7 +21,7 @@ const shell = require('shelljs');
 var argv = require('minimist')(process.argv.slice(2));
 
 /** List of vue demos. */
-const VUE_DEMOS = new Set(['game_of_life', 'vue-demo', 'latent-space-explorer']);
+const VUE_DEMOS = new Set(['game_of_life', 'latent-space-explorer']);
 
 const demoPath = argv._[0];
 
@@ -63,7 +63,7 @@ watchify.stderr.on('data', (data) => {
       const httpServer = spawn(httpCmd, ['-c-1'], { detached: false});
 
       httpServer.stdout.on('data', data => {
-        data = data.toString().split('\n')[0].trim()
+        data = data.toString().split('\n')[0].trim();
         if (data.startsWith('http://127.0.0.1:')) {
           // Open a browser pointing to the demo.
           opn(path.join(data, demoPath));

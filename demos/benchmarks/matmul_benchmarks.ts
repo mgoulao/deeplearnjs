@@ -14,8 +14,7 @@
  * limitations under the License.
  * =============================================================================
  */
-// tslint:disable-next-line:max-line-length
-import {Array2D, ENV, NDArrayMath} from 'deeplearn';
+import * as dl from 'deeplearn';
 
 import {BenchmarkTest, LAST_RUN_CPU_CUTOFF_MS} from './benchmark';
 import * as benchmark_util from './benchmark_util';
@@ -28,15 +27,13 @@ export class MatmulCPUBenchmark implements BenchmarkTest {
         resolve(-1);
       });
     }
-    const safeMode = false;
-    const math = new NDArrayMath('cpu', safeMode);
-    ENV.setMath(math);
-    const a = Array2D.randUniform([size, size], -1, 1);
-    const b = Array2D.randUniform([size, size], -1, 1);
-    const start = performance.now();
-    math.matMul(a, b);
-    const end = performance.now();
+    dl.setBackend('cpu');
 
+    const a: dl.Tensor2D = dl.randomUniform([size, size], -1, 1);
+    const b: dl.Tensor2D = dl.randomUniform([size, size], -1, 1);
+    const start = performance.now();
+    dl.matMul(a, b);
+    const end = performance.now();
     this.lastRunTimeMs = end - start;
     return this.lastRunTimeMs;
   }
@@ -44,19 +41,17 @@ export class MatmulCPUBenchmark implements BenchmarkTest {
 
 export class MatmulGPUBenchmark implements BenchmarkTest {
   async run(size: number): Promise<number> {
-    const safeMode = false;
-    const math = new NDArrayMath('webgl', safeMode);
-    ENV.setMath(math);
-    const a = Array2D.randNormal([size, size]);
-    const b = Array2D.randNormal([size, size]);
+    dl.setBackend('webgl');
 
-    const benchmark = () => math.matMul(a, b);
+    const a: dl.Tensor2D = dl.randomNormal([size, size]);
+    const b: dl.Tensor2D = dl.randomNormal([size, size]);
 
-    const time = await benchmark_util.warmupAndBenchmarkGPU(math, benchmark);
+    const benchmark = () => dl.matMul(a, b);
+
+    const time = await benchmark_util.warmupAndBenchmarkGPU(benchmark);
 
     a.dispose();
     b.dispose();
-    math.dispose();
 
     return time;
   }

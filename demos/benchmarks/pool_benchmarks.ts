@@ -15,8 +15,8 @@
  * =============================================================================
  */
 
-// tslint:disable-next-line:max-line-length
-import {Array3D, conv_util, ENV, NDArrayMath} from 'deeplearn';
+import * as dl from 'deeplearn';
+
 import {BenchmarkTest} from './benchmark';
 import * as benchmark_util from './benchmark_util';
 
@@ -28,27 +28,24 @@ export interface PoolBenchmarkParams {
   stride: number;
 }
 
-function getPoolingOp(option: string, math: NDArrayMath): (
-    x: Array3D, filterSize: [number, number]|number,
-    strides: [number, number]|number, pad: 'valid'|'same'|number) => Array3D {
+function getPoolingOp(option: string): (
+    x: dl.Tensor3D, filterSize: [number, number]|number,
+    strides: [number, number]|number) => dl.Tensor3D {
   switch (option) {
     case 'max':
-      return (x: Array3D, filterSize: [number, number] | number,
-              strides: [number, number] | number,
-              pad: 'valid' | 'same' | number) => {
-        return math.maxPool(x, filterSize, strides, pad);
+      return (x: dl.Tensor3D, filterSize: [number, number]|number,
+              strides: [number, number]|number) => {
+        return x.maxPool(filterSize, strides, 'same');
       };
     case 'min':
-      return (x: Array3D, filterSize: [number, number] | number,
-              strides: [number, number] | number,
-              pad: 'valid' | 'same' | number) => {
-        return math.minPool(x, filterSize, strides, pad);
+      return (x: dl.Tensor3D, filterSize: [number, number]|number,
+              strides: [number, number]|number) => {
+        return x.minPool(filterSize, strides, 'same');
       };
     case 'avg':
-      return (x: Array3D, filterSize: [number, number] | number,
-              strides: [number, number] | number,
-              pad: 'valid' | 'same' | number) => {
-        return math.avgPool(x, filterSize, strides, pad);
+      return (x: dl.Tensor3D, filterSize: [number, number]|number,
+              strides: [number, number]|number) => {
+        return x.avgPool(filterSize, strides, 'same');
       };
     default:
       throw new Error(`Not found such ops: ${option}`);
@@ -58,24 +55,21 @@ function getPoolingOp(option: string, math: NDArrayMath): (
 export class PoolCPUBenchmark implements BenchmarkTest {
   run(size: number, option: string,
       params: PoolBenchmarkParams): Promise<number> {
-    const safeMode = false;
-    const math = new NDArrayMath('cpu', safeMode);
-    ENV.setMath(math);
+    dl.setBackend('cpu');
+
     const outputDepth = params.depth;
     const xShape: [number, number, number] = [size, size, outputDepth];
     const fieldSize = params.fieldSize;
     const stride = params.stride;
-    const zeroPad = conv_util.computeDefaultPad(xShape, fieldSize, stride);
-    const op = getPoolingOp(option, math);
+    const op = getPoolingOp(option);
 
-    const x = Array3D.randUniform(xShape, -1, 1);
+    const x: dl.Tensor3D = dl.randomUniform(xShape, -1, 1);
 
     const start = performance.now();
     for (let i = 0; i < CPU_OP_RUNS; i++) {
-      op(x as Array3D, fieldSize, stride, zeroPad);
+      op(x, fieldSize, stride);
     }
     const avgTime = (performance.now() - start) / CPU_OP_RUNS;
-
     return new Promise<number>((resolve, reject) => {
       resolve(avgTime);
     });
@@ -85,18 +79,18 @@ export class PoolCPUBenchmark implements BenchmarkTest {
 export class PoolGPUBenchmark implements BenchmarkTest {
   async run(size: number, option: string, params: PoolBenchmarkParams):
       Promise<number> {
-    const safeMode = false;
-    const math = new NDArrayMath('webgl', safeMode);
-    ENV.setMath(math);
+    dl.setBackend('webgl');
+
     const outputDepth = params.depth;
     const xShape: [number, number, number] = [size, size, outputDepth];
     const fieldSize = params.fieldSize;
     const stride = params.stride;
-    const x = Array3D.randUniform(xShape, -1, 1);
-    const op = getPoolingOp(option, math);
+    const x: dl.Tensor3D = dl.randomUniform(xShape, -1, 1);
+    const op = getPoolingOp(option);
 
-    const benchmark = () => op(x, fieldSize, stride, 'same');
-    const time = await benchmark_util.warmupAndBenchmarkGPU(math, benchmark);
+    const benchmark = () => op(x, fieldSize, stride);
+    const time = await benchmark_util.warmupAndBenchmarkGPU(benchmark);
+
     x.dispose();
 
     return time;

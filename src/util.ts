@@ -1,5 +1,3 @@
-import {DataType, DataTypeMap, NDArray, Variable} from './math/ndarray';
-
 /**
  * @license
  * Copyright 2017 Google Inc. All Rights Reserved.
@@ -16,19 +14,9 @@ import {DataType, DataTypeMap, NDArray, Variable} from './math/ndarray';
  * limitations under the License.
  * =============================================================================
  */
-
-export type TypedArray = Float32Array|Int32Array|Uint8Array;
-export type FlatVector = boolean[]|number[]|TypedArray;
-export type RegularArray<T> = T[]|T[][]|T[][][]|T[][][][];
-export type ArrayData = TypedArray|RegularArray<number>|RegularArray<boolean>;
-
-export type NamedArrayMap = {
-  [name: string]: NDArray
-};
-
-export type NamedVariableMap = {
-  [name: string]: Variable;
-};
+import {Tensor} from './tensor';
+// tslint:disable-next-line:max-line-length
+import {DataType, DataTypeMap, FlatVector, NamedTensorMap, RecursiveArray, RegularArray, TensorContainer, TypedArray} from './types';
 
 /** Shuffles the array using Fisher-Yates algorithm. */
 // tslint:disable-next-line:no-any
@@ -83,33 +71,40 @@ export function assertShapesMatch(
       errorMessagePrefix + `Shapes ${shapeA} and ${shapeB} must match`);
 }
 
-export function assertTypesMatch(a: NDArray, b: NDArray): void {
+export function assertTypesMatch(a: Tensor, b: Tensor): void {
   assert(
       a.dtype === b.dtype,
       `The dtypes of the first (${a.dtype}) and ` +
           `second (${b.dtype}) input must match`);
 }
 
-// tslint:disable-next-line:no-any
-export function flatten(
-    arr: number|boolean|RegularArray<number>|RegularArray<boolean>,
-    ret: Array<number|boolean> = []): Array<number|boolean> {
+// NOTE: We explicitly type out what T extends instead of any so that
+// util.flatten on a nested array of number doesn't try to infer T as a
+// number[][], causing us to explicitly type util.flatten<number>().
+export function flatten<T extends number|boolean|Tensor|Promise<number>>(
+    arr: T|RecursiveArray<T>, ret: T[] = []): T[] {
   if (Array.isArray(arr)) {
     for (let i = 0; i < arr.length; ++i) {
       flatten(arr[i], ret);
     }
   } else {
-    ret.push(arr);
+    ret.push(arr as T);
   }
   return ret;
 }
 
-export function inferShape(arr: number|boolean|RegularArray<number>|
+export function inferShape(val: TypedArray|number|boolean|RegularArray<number>|
                            RegularArray<boolean>): number[] {
+  if (isTypedArray(val)) {
+    return [(val as TypedArray).length];
+  }
+  if (!Array.isArray(val)) {
+    return [];  // Scalar.
+  }
   const shape: number[] = [];
-  while (arr instanceof Array) {
-    shape.push(arr.length);
-    arr = arr[0];
+  while (val instanceof Array) {
+    shape.push(val.length);
+    val = val[0];
   }
   return shape;
 }
@@ -313,15 +308,18 @@ export function squeezeShape(shape: number[], axis?: number[]):
   const keptDims: number[] = [];
   let j = 0;
   for (let i = 0; i < shape.length; ++i) {
-    if (axis !== undefined) {
+    if (axis != null) {
       if (axis[j] === i && shape[i] > 1) {
-        throw new Error(`axis ${i} is not 1`);
+        throw new Error(
+            `Can't squeeze axis ${i} since its dim '${shape[i]}' is not 1`);
       }
-      if ((axis[j] === undefined || axis[j] > i) && shape[i] === 1) {
+      if ((axis[j] == null || axis[j] > i) && shape[i] === 1) {
         newShape.push(shape[i]);
         keptDims.push(i);
       }
-      if (axis[j] <= i) j++;
+      if (axis[j] <= i) {
+        j++;
+      }
     }
     if (shape[i] > 1) {
       newShape.push(shape[i]);
@@ -346,32 +344,31 @@ export function getTypedArrayFromDType<D extends DataType>(
   return values;
 }
 
-export function isNDArrayInList(
-    ndarray: NDArray, ndarrayList: NDArray[]): boolean {
-  for (let i = 0; i < ndarrayList.length; i++) {
-    if (ndarrayList[i].id === ndarray.id) {
+export function isTensorInList(tensor: Tensor, tensorList: Tensor[]): boolean {
+  for (let i = 0; i < tensorList.length; i++) {
+    if (tensorList[i].id === tensor.id) {
       return true;
     }
   }
   return false;
 }
 
-export function checkForNaN(
-    vals: TypedArray, dtype: DataType, name: string): void {
+export function checkForNaN<D extends DataType>(
+    vals: DataTypeMap[D], dtype: D, name: string): void {
   for (let i = 0; i < vals.length; i++) {
     if (isValNaN(vals[i], dtype)) {
-      throw Error(`The result of the last math.${name} has NaNs.`);
+      throw Error(`The result of the '${name}' has NaNs.`);
     }
   }
 }
 
 export function flattenNameArrayMap(
-    nameArrayMap: NDArray|NamedArrayMap, keys?: string[]): NDArray[] {
-  const xs: NDArray[] = [];
-  if (nameArrayMap instanceof NDArray) {
+    nameArrayMap: Tensor|NamedTensorMap, keys?: string[]): Tensor[] {
+  const xs: Tensor[] = [];
+  if (nameArrayMap instanceof Tensor) {
     xs.push(nameArrayMap);
   } else {
-    const xMap = nameArrayMap as {[xName: string]: NDArray};
+    const xMap = nameArrayMap as {[xName: string]: Tensor};
     for (let i = 0; i < keys.length; i++) {
       xs.push(xMap[keys[i]]);
     }
@@ -380,12 +377,12 @@ export function flattenNameArrayMap(
 }
 
 export function unflattenToNameArrayMap(
-    keys: string[], flatArrays: NDArray[]): NamedArrayMap {
+    keys: string[], flatArrays: Tensor[]): NamedTensorMap {
   if (keys.length !== flatArrays.length) {
     throw new Error(
-        `Cannot unflatten NDArray[], keys and arrays are not of same length.`);
+        `Cannot unflatten Tensor[], keys and arrays are not of same length.`);
   }
-  const result: NamedArrayMap = {};
+  const result: NamedTensorMap = {};
   for (let i = 0; i < keys.length; i++) {
     result[keys[i]] = flatArrays[i];
   }
@@ -409,11 +406,100 @@ export function hasEncodingLoss(oldType: DataType, newType: DataType): boolean {
   return true;
 }
 
+export function copyTypedArray<D extends DataType>(
+    array: DataTypeMap[D]|number[]|boolean[], dtype: D): DataTypeMap[D] {
+  if (dtype == null || dtype === 'float32') {
+    return new Float32Array(array as number[]);
+  } else if (dtype === 'int32') {
+    const vals = new Int32Array(array.length);
+    for (let i = 0; i < vals.length; ++i) {
+      const val = array[i] as number;
+      if (isValNaN(val, 'int32')) {
+        vals[i] = getNaN('int32');
+      } else {
+        vals[i] = val;
+      }
+    }
+    return vals;
+  } else if (dtype === 'bool') {
+    const bool = new Uint8Array(array.length);
+    for (let i = 0; i < bool.length; ++i) {
+      const val = array[i] as number;
+      if (isValNaN(val as number, 'bool')) {
+        bool[i] = getNaN('bool');
+      } else if (Math.round(val) !== 0) {
+        bool[i] = 1;
+      }
+    }
+    return bool;
+  } else {
+    throw new Error(`Unknown data type ${dtype}`);
+  }
+}
+
+export function isTypedArray(a: TypedArray|number|boolean|RegularArray<number>|
+                             RegularArray<boolean>): boolean {
+  return a instanceof Float32Array || a instanceof Int32Array ||
+      a instanceof Uint8Array;
+}
+
+export function bytesPerElement(dtype: DataType): number {
+  if (dtype === 'float32' || dtype === 'int32') {
+    return 4;
+  } else if (dtype === 'bool') {
+    return 1;
+  } else {
+    throw new Error(`Unknown dtype ${dtype}`);
+  }
+}
+
+export function isFunction(f: Function) {
+  return !!(f && f.constructor && f.call && f.apply);
+}
+
+export function extractTensorsFromContainer(result: TensorContainer): Tensor[] {
+  return extractTensorsFromAny(result);
+}
+
 /**
- * Returns a promise that resolve when a requestAnimationFrame has completed.
- * This is simply a sugar method so that users can do the following:
- * `await dl.nextFrame();`
+ * Extracts any `Tensor`s found within the provided object up to depth 1.
+ *
+ * @param container an object that may be a `Tensor` or may directly contain
+ *   `Tensor`s, such as a `Tensor[]` or `{key: Tensor, ...}`.  In general it
+ *   is safe to pass any object here, except that `Promise`s are not
+ *   supported.
+ * @returns An array of `Tensors` found within the passed object.  If the
+ *   argument is simply a `Tensor', a list containing that `Tensor` is
+ *   returned.  If the argument directly contains `Tensor`s, a list of them
+ *   will be returned.  `Tensor`s nested more deeply within the argument will
+ *   however not be found.  If the object is not a `Tensor` or does not
+ *   contain `Tensors`, an empty list is returned.
  */
-export function nextFrame(): Promise<void> {
-  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+// tslint:disable-next-line:no-any
+export function extractTensorsFromAny(result: any): Tensor[] {
+  if (result == null) {
+    return [];
+  }
+  if (result instanceof Tensor) {
+    return [result];
+  }
+
+  const list: Tensor[] = [];
+  // tslint:disable-next-line:no-any
+  const resultObj = result as {[key: string]: any};
+  if (!isIterable(resultObj)) {
+    return [];
+  }
+
+  // Iteration over keys works also for arrays.
+  for (const k in resultObj) {
+    const sublist = flatten(resultObj[k]).filter(x => x instanceof Tensor);
+    list.push(...sublist);
+  }
+  return list;
+}
+
+// tslint:disable-next-line:no-any
+function isIterable(obj: any): boolean {
+  return Array.isArray(obj) || typeof obj === 'object';
 }

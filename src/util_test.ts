@@ -15,11 +15,11 @@
  * =============================================================================
  */
 
-import {Array1D, NDArray, Scalar} from './math/ndarray';
-import * as test_util from './test_util';
-import {MathTests} from './test_util';
+import * as dl from './index';
+import {Tensor} from './tensor';
+import {CPU_ENVS, describeWithFlags} from './test_util';
+import {NamedTensorMap} from './types';
 import * as util from './util';
-import {NamedArrayMap} from './util';
 
 describe('Util', () => {
   it('Flatten arrays', () => {
@@ -90,6 +90,11 @@ describe('Util', () => {
       [[[5], [6]], [[4], [5]], [[1], [2]]]
     ];
     expect(util.inferShape(a)).toEqual([2, 3, 2, 1]);
+  });
+
+  it('infer shape of typed array', () => {
+    const a = new Float32Array([1, 2, 3, 4, 5]);
+    expect(util.inferShape(a)).toEqual([5]);
   });
 });
 
@@ -266,25 +271,21 @@ describe('util.squeezeShape', () => {
   });
 });
 
-{
-  const tests: MathTests = it => {
-    it('not in list', math => {
-      const a = Scalar.new(1);
-      const list: NDArray[] = [Scalar.new(1), Array1D.new([1, 2, 3])];
+describe('util.isTensorInList', () => {
+  it('not in list', () => {
+    const a = dl.scalar(1);
+    const list: Tensor[] = [dl.scalar(1), dl.tensor1d([1, 2, 3])];
 
-      expect(util.isNDArrayInList(a, list)).toBe(false);
-    });
+    expect(util.isTensorInList(a, list)).toBe(false);
+  });
 
-    it('in list', math => {
-      const a = Scalar.new(1);
-      const list: NDArray[] = [Scalar.new(2), Array1D.new([1, 2, 3]), a];
+  it('in list', () => {
+    const a = dl.scalar(1);
+    const list: Tensor[] = [dl.scalar(2), dl.tensor1d([1, 2, 3]), a];
 
-      expect(util.isNDArrayInList(a, list)).toBe(true);
-    });
-  };
-
-  test_util.describeMathCPU('util.isNDArrayInList', [tests]);
-}
+    expect(util.isTensorInList(a, list)).toBe(true);
+  });
+});
 
 describe('util.checkForNaN', () => {
   it('Float32Array has NaN', () => {
@@ -333,38 +334,28 @@ describe('util.checkForNaN', () => {
   });
 });
 
-{
-  const tests: MathTests = it => {
-    it('basic', math => {
-      const a = Scalar.new(1);
-      const b = Scalar.new(3);
-      const c = Array1D.new([1, 2, 3]);
+describe('util.flattenNameArrayMap', () => {
+  it('basic', () => {
+    const a = dl.scalar(1);
+    const b = dl.scalar(3);
+    const c = dl.tensor1d([1, 2, 3]);
 
-      const map: NamedArrayMap = {a, b, c};
-      expect(util.flattenNameArrayMap(map, Object.keys(map))).toEqual([
-        a, b, c
-      ]);
-    });
-  };
+    const map: NamedTensorMap = {a, b, c};
+    expect(util.flattenNameArrayMap(map, Object.keys(map))).toEqual([a, b, c]);
+  });
+});
 
-  test_util.describeMathCPU('util.flattenNameArrayMap', [tests]);
-}
+describe('util.unflattenToNameArrayMap', () => {
+  it('basic', () => {
+    const a = dl.scalar(1);
+    const b = dl.scalar(3);
+    const c = dl.tensor1d([1, 2, 3]);
 
-{
-  const tests: MathTests = it => {
-    it('basic', math => {
-      const a = Scalar.new(1);
-      const b = Scalar.new(3);
-      const c = Array1D.new([1, 2, 3]);
-
-      expect(util.unflattenToNameArrayMap(['a', 'b', 'c'], [
-        a, b, c
-      ])).toEqual({a, b, c});
-    });
-  };
-
-  test_util.describeMathCPU('util.unflattenToNameArrayMap', [tests]);
-}
+    expect(util.unflattenToNameArrayMap(['a', 'b', 'c'], [
+      a, b, c
+    ])).toEqual({a, b, c});
+  });
+});
 
 describe('util.hasEncodingLoss', () => {
   it('any to float32', () => {
@@ -390,5 +381,29 @@ describe('util.hasEncodingLoss', () => {
 
   it('bool to bool', () => {
     expect(util.hasEncodingLoss('bool', 'bool')).toBe(false);
+  });
+});
+
+describeWithFlags('extractTensorsFromAny', CPU_ENVS, () => {
+  it('null input returns empty tensor', () => {
+    const results = util.extractTensorsFromAny(null);
+
+    expect(results).toEqual([]);
+  });
+
+  it('tensor input returns one element tensor', () => {
+    const x = dl.scalar(1);
+    const results = util.extractTensorsFromAny(x);
+
+    expect(results).toEqual([x]);
+  });
+
+  it('name tensor map returns flattened tensor', () => {
+    const x1 = dl.scalar(1);
+    const x2 = dl.scalar(3);
+    const x3 = dl.scalar(4);
+    const results = util.extractTensorsFromAny({x1, x2, x3});
+
+    expect(results).toEqual([x1, x2, x3]);
   });
 });
